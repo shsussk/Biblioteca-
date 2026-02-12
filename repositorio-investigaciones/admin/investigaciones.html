@@ -1,0 +1,292 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Investigaciones</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module" src="../supabase.js"></script>
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-white shadow-sm mb-8">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-gray-800">Administrar Investigaciones</h1>
+            <div class="space-x-2">
+                <a href="dashboard.html" class="text-blue-600 hover:underline">Dashboard</a>
+                <button id="btn-logout" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">Cerrar sesión</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4">
+        <div class="mb-6">
+            <button id="btn-nuevo" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">+ Nueva Investigación</button>
+        </div>
+
+        <div id="modal-form" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+            <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-3xl shadow-lg rounded-md bg-white">
+                <h2 id="modal-titulo" class="text-2xl font-bold mb-4">Nueva Investigación</h2>
+                <form id="form-investigacion">
+                    <input type="hidden" id="investigacion-id">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700">Título</label>
+                            <input type="text" id="titulo" required class="mt-1 w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Pilar</label>
+                            <select id="pilar" required class="mt-1 w-full border-gray-300 rounded-md shadow-sm">
+                                <option value="">Seleccione</option>
+                                <option value="suelo_fertilizacion">Manejo de suelo y fertilización</option>
+                                <option value="plagas_enfermedades">Plagas y enfermedades</option>
+                                <option value="postcosecha">Postcosecha</option>
+                                <option value="modelos_predictivos_innovacion">Modelos predictivos e innovación</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Año</label>
+                            <input type="number" id="anio" required class="mt-1 w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700">Autores</label>
+                            <input type="text" id="autores" required class="mt-1 w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700">Resumen</label>
+                            <textarea id="resumen" rows="4" required class="mt-1 w-full border-gray-300 rounded-md shadow-sm"></textarea>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700">Palabras clave (separadas por comas)</label>
+                            <input type="text" id="palabras_clave" placeholder="ej: fertilidad, riego, nitrógeno" class="mt-1 w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Requiere permiso</label>
+                            <input type="checkbox" id="requiere_permiso" checked class="mt-2 h-4 w-4 text-blue-600 border-gray-300 rounded">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Nivel de acceso</label>
+                            <select id="nivel_acceso" class="mt-1 w-full border-gray-300 rounded-md shadow-sm">
+                                <option value="interno">Interno</option>
+                                <option value="direccion">Dirección</option>
+                                <option value="publico_parcial">Público parcial</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700">Archivo PDF</label>
+                            <input type="file" id="pdf-file" accept=".pdf" class="mt-1 w-full">
+                            <p id="pdf-actual" class="text-sm text-gray-500 mt-1"></p>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end space-x-2">
+                        <button type="button" id="btn-cancelar" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400">Cancelar</button>
+                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Título</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pilar</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Año</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Autores</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nivel</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-body" class="bg-white divide-y divide-gray-200">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script type="module">
+        import { supabase } from '../supabase.js';
+
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (!session) window.location.href = 'login.html';
+        });
+
+        const btnNuevo = document.getElementById('btn-nuevo');
+        const modalForm = document.getElementById('modal-form');
+        const btnCancelar = document.getElementById('btn-cancelar');
+        const form = document.getElementById('form-investigacion');
+        const modalTitulo = document.getElementById('modal-titulo');
+        const investigacionId = document.getElementById('investigacion-id');
+        const titulo = document.getElementById('titulo');
+        const pilar = document.getElementById('pilar');
+        const anio = document.getElementById('anio');
+        const autores = document.getElementById('autores');
+        const resumen = document.getElementById('resumen');
+        const palabrasClave = document.getElementById('palabras_clave');
+        const requierePermiso = document.getElementById('requiere_permiso');
+        const nivelAcceso = document.getElementById('nivel_acceso');
+        const pdfFile = document.getElementById('pdf-file');
+        const pdfActual = document.getElementById('pdf-actual');
+        const btnLogout = document.getElementById('btn-logout');
+
+        async function cargarInvestigaciones() {
+            const { data, error } = await supabase
+                .from('investigaciones')
+                .select('*')
+                .order('fecha_subida', { ascending: false });
+
+            if (error) {
+                console.error(error);
+                return;
+            }
+
+            const tbody = document.getElementById('tabla-body');
+            tbody.innerHTML = data.map(inv => 
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="editarInvestigacion('')" class="text-blue-600 hover:text-blue-900 mr-3">Editar</button>
+                        <button onclick="eliminarInvestigacion('')" class="text-red-600 hover:text-red-900">Eliminar</button>
+                    </td>
+                </tr>
+            ).join('');
+        }
+
+        window.editarInvestigacion = async (id) => {
+            const { data, error } = await supabase
+                .from('investigaciones')
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (error) {
+                alert('Error al cargar la investigación');
+                return;
+            }
+
+            investigacionId.value = data.id;
+            titulo.value = data.titulo;
+            pilar.value = data.pilar;
+            anio.value = data.anio;
+            autores.value = data.autores;
+            resumen.value = data.resumen;
+            palabrasClave.value = data.palabras_clave.join(', ');
+            requierePermiso.checked = data.requiere_permiso;
+            nivelAcceso.value = data.nivel_acceso;
+            pdfActual.textContent = data.archivo_url ? PDF actual:  : 'Sin PDF';
+            pdfFile.value = '';
+            modalTitulo.textContent = 'Editar Investigación';
+            modalForm.classList.remove('hidden');
+        };
+
+        window.eliminarInvestigacion = async (id) => {
+            if (!confirm('¿Está seguro de eliminar esta investigación? Esta acción no se puede deshacer.')) return;
+
+            const { data: inv } = await supabase
+                .from('investigaciones')
+                .select('archivo_url')
+                .eq('id', id)
+                .single();
+
+            if (inv?.archivo_url) {
+                await supabase.storage
+                    .from('investigaciones_pdf')
+                    .remove([inv.archivo_url]);
+            }
+
+            const { error } = await supabase
+                .from('investigaciones')
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                alert('Error al eliminar');
+            } else {
+                cargarInvestigaciones();
+            }
+        };
+
+        btnNuevo.addEventListener('click', () => {
+            form.reset();
+            investigacionId.value = '';
+            pdfActual.textContent = '';
+            modalTitulo.textContent = 'Nueva Investigación';
+            modalForm.classList.remove('hidden');
+        });
+
+        btnCancelar.addEventListener('click', () => {
+            modalForm.classList.add('hidden');
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = investigacionId.value;
+            const palabrasArray = palabrasClave.value.split(',').map(p => p.trim()).filter(p => p !== '');
+
+            let archivo_url = null;
+            if (pdfFile.files.length > 0) {
+                const file = pdfFile.files[0];
+                const filePath = ${Date.now()}_;
+                const { error: uploadError } = await supabase.storage
+                    .from('investigaciones_pdf')
+                    .upload(filePath, file);
+
+                if (uploadError) {
+                    alert('Error al subir el archivo: ' + uploadError.message);
+                    return;
+                }
+                archivo_url = filePath;
+            }
+
+            const data = {
+                titulo: titulo.value,
+                pilar: pilar.value,
+                anio: parseInt(anio.value),
+                autores: autores.value,
+                resumen: resumen.value,
+                palabras_clave: palabrasArray,
+                requiere_permiso: requierePermiso.checked,
+                nivel_acceso: nivelAcceso.value,
+                ultima_actualizacion: new Date()
+            };
+
+            if (archivo_url) {
+                data.archivo_url = archivo_url;
+            }
+
+            let error;
+            if (id) {
+                const { error: updateError } = await supabase
+                    .from('investigaciones')
+                    .update(data)
+                    .eq('id', id);
+                error = updateError;
+            } else {
+                data.fecha_subida = new Date();
+                const { error: insertError } = await supabase
+                    .from('investigaciones')
+                    .insert([data]);
+                error = insertError;
+            }
+
+            if (error) {
+                alert('Error al guardar: ' + error.message);
+            } else {
+                modalForm.classList.add('hidden');
+                cargarInvestigaciones();
+            }
+        });
+
+        btnLogout.addEventListener('click', async () => {
+            await supabase.auth.signOut();
+            window.location.href = 'login.html';
+        });
+
+        cargarInvestigaciones();
+    </script>
+</body>
+</html>

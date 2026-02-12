@@ -1,0 +1,43 @@
+﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f9fafb;
+}
+
+.badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.badge-suelo { background-color: #10b981; color: white; }
+.badge-plagas { background-color: #ef4444; color: white; }
+.badge-postcosecha { background-color: #f59e0b; color: white; }
+.badge-modelos { background-color: #6366f1; color: white; }
+
+.card {
+    @apply bg-white rounded-lg shadow-md p-6 transition hover:shadow-lg;
+}
+
+.btn {
+    @apply px-4 py-2 rounded-md font-medium transition;
+}
+
+.btn-primary {
+    @apply bg-blue-600 text-white hover:bg-blue-700;
+}
+
+.btn-secondary {
+    @apply bg-gray-200 text-gray-800 hover:bg-gray-300;
+}
+
+.btn-success {
+    @apply bg-green-600 text-white hover:bg-green-700;
+}
+
+.btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700;
+}
+
+.btn-warning {
+    @apply bg-yellow-500 text-white hover:bg-yellow-600;
+}
