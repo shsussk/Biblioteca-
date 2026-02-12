@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -31,6 +31,7 @@
     <script type="module">
         import { supabase } from '../supabase.js';
 
+        // Verificar sesión
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (!session) window.location.href = 'login.html';
         });
