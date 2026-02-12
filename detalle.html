@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle de Investigación</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="supabase.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <nav class="mb-6">
+            <a href="index.html" class="text-blue-600 hover:underline">&larr; Volver al listado</a>
+        </nav>
+
+        <div id="detalle-container" class="bg-white rounded-lg shadow p-6">
+            <!-- Contenido cargado dinámicamente -->
+        </div>
+
+        <!-- Modal/Sección para solicitar permiso -->
+        <div id="solicitud-section" class="mt-8 bg-white rounded-lg shadow p-6 hidden">
+            <h3 class="text-xl font-semibold mb-4">Solicitar permiso de descarga</h3>
+            <form id="form-solicitud">
+                <input type="hidden" id="documento-id" name="documentoId">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nombre completo *</label>
+                        <input type="text" id="nombre" required class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Correo electrónico *</label>
+                        <input type="email" id="correo" required class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Institución / Cargo</label>
+                        <input type="text" id="institucion" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Motivo de la solicitud *</label>
+                        <textarea id="motivo" rows="3" required class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Enviar solicitud</button>
+            </form>
+            <div id="mensaje-solicitud" class="mt-4 hidden"></div>
+        </div>
+
+        <!-- Sección para verificar correo y descargar (si ya tiene permiso) -->
+        <div id="descarga-section" class="mt-8 bg-white rounded-lg shadow p-6 hidden">
+            <h3 class="text-xl font-semibold mb-4">Descarga de PDF</h3>
+            <p class="mb-4">Ingrese su correo electrónico para verificar si tiene permiso de descarga.</p>
+            <div class="flex gap-2">
+                <input type="email" id="email-verificar" placeholder="su@correo.com" class="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                <button id="btn-verificar" class="btn btn-secondary">Verificar</button>
+            </div>
+            <div id="descarga-link" class="mt-4 hidden">
+                <a id="pdf-download-link" href="#" class="btn btn-success" download>Descargar PDF</a>
+            </div>
+            <div id="mensaje-descarga" class="mt-4 hidden"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { supabase } from './supabase.js';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const documentoId = urlParams.get('id');
+
+        const detalleContainer = document.getElementById('detalle-container');
+        const solicitudSection = document.getElementById('solicitud-section');
+        const descargaSection = document.getElementById('descarga-section');
+        const formSolicitud = document.getElementById('form-solicitud');
+        const documentoIdInput = document.getElementById('documento-id');
+        const mensajeSolicitud = document.getElementById('mensaje-solicitud');
+        const btnVerificar = document.getElementById('btn-verificar');
+        const emailVerificar = document.getElementById('email-verificar');
+        const pdfDownloadLink = document.getElementById('pdf-download-link');
+        const mensajeDescarga = document.getElementById('mensaje-descarga');
+
+        documentoIdInput.value = documentoId;
+
+        async function cargarDetalle() {
+            if (!documentoId) {
+                detalleContainer.innerHTML = '<p class="text-red-600">ID de documento no válido</p>';
+                return;
+            }
+
+            const { data, error } = await supabase
+                .from('investigaciones')
+                .select('*')
+                .eq('id', documentoId)
+                .single();
+
+            if (error || !data) {
+                detalleContainer.innerHTML = '<p class="text-red-600">No se encontró la investigación</p>';
+                return;
+            }
+
+            const badgeColor = {
+                suelo_fertilizacion: 'badge-suelo',
+                plagas_enfermedades: 'badge-plagas',
+                postcosecha: 'badge-postcosecha',
+                modelos_predictivos_innovacion: 'badge-modelos'
+            }[data.pilar] || 'bg-gray-500';
+
+            const pilarTexto = {
+                suelo_fertilizacion: 'Manejo de suelo y fertilización',
+                plagas_enfermedades: 'Plagas y enfermedades',
+                postcosecha: 'Postcosecha',
+                modelos_predictivos_innovacion: 'Modelos predictivos e innovación'
+            }[data.pilar];
+
+            detalleContainer.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <span class="badge ${badgeColor} text-lg px-3 py-1">${pilarTexto}</span>
+                    <span class="text-gray-600">${data.anio}</span>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">${data.titulo}</h1>
+                <p class="text-lg text-gray-700 mb-4">${data.autores}</p>
+                <div class="prose max-w-none mb-6">
+                    <h3 class="text-xl font-semibold mb-2">Resumen</h3>
+                    <p class="text-gray-800">${data.resumen}</p>
+                </div>
+                <div class="mb-4">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Palabras clave</h4>
+                    <div class="flex flex-wrap gap-2">
+                        ${data.palabras_clave.map(pc => `<span class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm">${pc}</span>`).join('')}
+                    </div>
+                </div>
+            `;
+
+            // Mostrar la sección correspondiente
+            if (data.requiere_permiso) {
+                solicitudSection.classList.remove('hidden');
+                descargaSection.classList.remove('hidden');
+            } else {
+                // Descarga directa
+                descargaSection.classList.remove('hidden');
+                document.getElementById('descarga-link').classList.remove('hidden');
+                const { data: signedUrl } = await supabase.storage
+                    .from('investigaciones_pdf')
+                    .createSignedUrl(data.archivo_url, 3600);
+                pdfDownloadLink.href = signedUrl.signedUrl;
+                pdfDownloadLink.download = `${data.titulo}.pdf`;
+            }
+        }
+
+        // Enviar solicitud
+        formSolicitud.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = {
+                id_documento: documentoId,
+                nombre: document.getElementById('nombre').value,
+                correo: document.getElementById('correo').value,
+                institucion: document.getElementById('institucion').value || null,
+                motivo: document.getElementById('motivo').value,
+                estado: 'pendiente'
+            };
+
+            const { error } = await supabase
+                .from('solicitudes_descarga')
+                .insert([formData]);
+
+            if (error) {
+                mensajeSolicitud.textContent = 'Error al enviar la solicitud. Intente nuevamente.';
+                mensajeSolicitud.classList.add('text-red-600');
+            } else {
+                mensajeSolicitud.textContent = 'Solicitud enviada exitosamente. Recibirá un correo cuando sea aprobada.';
+                mensajeSolicitud.classList.remove('text-red-600');
+                mensajeSolicitud.classList.add('text-green-600');
+                formSolicitud.reset();
+            }
+            mensajeSolicitud.classList.remove('hidden');
+        });
+
+        // Verificar correo para descarga
+        btnVerificar.addEventListener('click', async () => {
+            const email = emailVerificar.value.trim();
+            if (!email) {
+                mensajeDescarga.textContent = 'Ingrese un correo electrónico';
+                mensajeDescarga.classList.add('text-red-600');
+                mensajeDescarga.classList.remove('hidden');
+                return;
+            }
+
+            const { data, error } = await supabase
+                .from('solicitudes_descarga')
+                .select('*')
+                .eq('id_documento', documentoId)
+                .eq('correo', email)
+                .eq('estado', 'aprobada')
+                .maybeSingle();
+
+            if (error) {
+                mensajeDescarga.textContent = 'Error al verificar permiso.';
+                mensajeDescarga.classList.add('text-red-600');
+                mensajeDescarga.classList.remove('hidden');
+                return;
+            }
+
+            if (data) {
+                // Tiene permiso: generar enlace firmado
+                const { data: inv } = await supabase
+                    .from('investigaciones')
+                    .select('archivo_url, titulo')
+                    .eq('id', documentoId)
+                    .single();
+
+                if (inv?.archivo_url) {
+                    const { data: signedUrl } = await supabase.storage
+                        .from('investigaciones_pdf')
+                        .createSignedUrl(inv.archivo_url, 3600);
+                    pdfDownloadLink.href = signedUrl.signedUrl;
+                    pdfDownloadLink.download = `${inv.titulo}.pdf`;
+                    document.getElementById('descarga-link').classList.remove('hidden');
+                    mensajeDescarga.classList.add('hidden');
+                } else {
+                    mensajeDescarga.textContent = 'El archivo PDF no está disponible.';
+                    mensajeDescarga.classList.add('text-red-600');
+                    mensajeDescarga.classList.remove('hidden');
+                }
+            } else {
+                mensajeDescarga.textContent = 'No tiene permiso de descarga para este documento.';
+                mensajeDescarga.classList.add('text-red-600');
+                mensajeDescarga.classList.remove('hidden');
+                document.getElementById('descarga-link').classList.add('hidden');
+            }
+        });
+
+        cargarDetalle();
+    </script>
+</body>
+</html>
