@@ -10,9 +10,19 @@
 </head>
 <body class="bg-gray-50">
     <div class="container mx-auto px-4 py-8">
-        <header class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900">Repositorio de Investigaciones</h1>
-            <p class="text-gray-600">Explora estudios clasificados por pilares de investigación</p>
+        <!-- Header con título y botón de administración -->
+        <header class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Repositorio de Investigaciones</h1>
+                <p class="text-gray-600">Explora estudios clasificados por pilares de investigación</p>
+            </div>
+            <a href="admin/login.html" 
+               class="bg-gray-800 text-white px-5 py-2 rounded-md hover:bg-gray-700 transition text-sm font-medium shadow-sm flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Administración
+            </a>
         </header>
 
         <!-- Filtros -->
@@ -61,7 +71,10 @@
                 .from('investigaciones')
                 .select('anio')
                 .order('anio', { ascending: false });
-            if (error) console.error(error);
+            if (error) {
+                console.error('Error cargando años:', error);
+                return;
+            }
             const anios = [...new Set(data.map(item => item.anio))];
             anioSelect.innerHTML = '<option value="">Todos los años</option>';
             anios.forEach(anio => {
@@ -84,11 +97,16 @@
 
             const texto = textoInput.value.trim();
             if (texto) {
+                // Búsqueda en título, resumen y palabras clave
                 query = query.or(`titulo.ilike.%${texto}%,resumen.ilike.%${texto}%,palabras_clave.cs.{${texto}}`);
             }
 
             const { data, error } = await query.order('fecha_subida', { ascending: false });
-            if (error) console.error(error);
+            if (error) {
+                console.error('Error cargando investigaciones:', error);
+                renderTarjetas([]);
+                return;
+            }
             renderTarjetas(data || []);
         }
 
@@ -131,11 +149,7 @@
             }).join('');
         }
 
-        // Event listeners
-        pilarSelect.addEventListener('change', cargarInvestigaciones);
-        anioSelect.addEventListener('change', cargarInvestigaciones);
-        textoInput.addEventListener('input', debounce(cargarInvestigaciones, 300));
-
+        // Debounce para búsqueda
         function debounce(func, wait) {
             let timeout;
             return function executedFunction(...args) {
@@ -147,6 +161,11 @@
                 timeout = setTimeout(later, wait);
             };
         }
+
+        // Event listeners
+        pilarSelect.addEventListener('change', cargarInvestigaciones);
+        anioSelect.addEventListener('change', cargarInvestigaciones);
+        textoInput.addEventListener('input', debounce(cargarInvestigaciones, 300));
 
         // Inicializar
         cargarAnios();
