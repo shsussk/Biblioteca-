@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repositorio de Investigaciones</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="supabase.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Repositorio de Investigaciones</h1>
+            <p class="text-gray-600">Explora estudios clasificados por pilares de investigación</p>
+        </header>
+
+        <!-- Filtros -->
+        <div class="bg-white rounded-lg shadow p-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Pilar</label>
+                    <select id="filtro-pilar" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Todos los pilares</option>
+                        <option value="suelo_fertilizacion">Manejo de suelo y fertilización</option>
+                        <option value="plagas_enfermedades">Plagas y enfermedades</option>
+                        <option value="postcosecha">Postcosecha</option>
+                        <option value="modelos_predictivos_innovacion">Modelos predictivos e innovación</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Año</label>
+                    <select id="filtro-anio" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Todos los años</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Búsqueda</label>
+                    <input type="text" id="filtro-texto" placeholder="Título, resumen, palabras clave..." class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                </div>
+            </div>
+        </div>
+
+        <!-- Listado de investigaciones -->
+        <div id="lista-investigaciones" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Las tarjetas se cargarán dinámicamente -->
+        </div>
+    </div>
+
+    <script type="module">
+        import { supabase } from './supabase.js';
+
+        const pilarSelect = document.getElementById('filtro-pilar');
+        const anioSelect = document.getElementById('filtro-anio');
+        const textoInput = document.getElementById('filtro-texto');
+        const lista = document.getElementById('lista-investigaciones');
+
+        // Cargar años únicos para el filtro
+        async function cargarAnios() {
+            const { data, error } = await supabase
+                .from('investigaciones')
+                .select('anio')
+                .order('anio', { ascending: false });
+            if (error) console.error(error);
+            const anios = [...new Set(data.map(item => item.anio))];
+            anioSelect.innerHTML = '<option value="">Todos los años</option>';
+            anios.forEach(anio => {
+                const option = document.createElement('option');
+                option.value = anio;
+                option.textContent = anio;
+                anioSelect.appendChild(option);
+            });
+        }
+
+        // Cargar investigaciones con filtros
+        async function cargarInvestigaciones() {
+            let query = supabase.from('investigaciones').select('*');
+
+            const pilar = pilarSelect.value;
+            if (pilar) query = query.eq('pilar', pilar);
+
+            const anio = anioSelect.value;
+            if (anio) query = query.eq('anio', anio);
+
+            const texto = textoInput.value.trim();
+            if (texto) {
+                query = query.or(`titulo.ilike.%${texto}%,resumen.ilike.%${texto}%,palabras_clave.cs.{${texto}}`);
+            }
+
+            const { data, error } = await query.order('fecha_subida', { ascending: false });
+            if (error) console.error(error);
+            renderTarjetas(data || []);
+        }
+
+        function renderTarjetas(investigaciones) {
+            if (investigaciones.length === 0) {
+                lista.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500">No se encontraron investigaciones</div>';
+                return;
+            }
+
+            lista.innerHTML = investigaciones.map(inv => {
+                const badgeColor = {
+                    suelo_fertilizacion: 'badge-suelo',
+                    plagas_enfermedades: 'badge-plagas',
+                    postcosecha: 'badge-postcosecha',
+                    modelos_predictivos_innovacion: 'badge-modelos'
+                }[inv.pilar] || 'bg-gray-500';
+
+                const pilarTexto = {
+                    suelo_fertilizacion: 'Manejo de suelo y fertilización',
+                    plagas_enfermedades: 'Plagas y enfermedades',
+                    postcosecha: 'Postcosecha',
+                    modelos_predictivos_innovacion: 'Modelos predictivos e innovación'
+                }[inv.pilar];
+
+                return `
+                    <div class="card">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="badge ${badgeColor}">${pilarTexto}</span>
+                            <span class="text-sm text-gray-500">${inv.anio}</span>
+                        </div>
+                        <h2 class="text-xl font-semibold text-gray-900 mb-2">${inv.titulo}</h2>
+                        <p class="text-sm text-gray-600 mb-2">${inv.autores}</p>
+                        <p class="text-gray-700 text-sm mb-4 line-clamp-3">${inv.resumen.substring(0, 150)}...</p>
+                        <div class="flex flex-wrap gap-1 mb-4">
+                            ${inv.palabras_clave.map(pc => `<span class="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">${pc}</span>`).join('')}
+                        </div>
+                        <a href="detalle.html?id=${inv.id}" class="btn btn-primary w-full text-center">Ver detalle</a>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Event listeners
+        pilarSelect.addEventListener('change', cargarInvestigaciones);
+        anioSelect.addEventListener('change', cargarInvestigaciones);
+        textoInput.addEventListener('input', debounce(cargarInvestigaciones, 300));
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Inicializar
+        cargarAnios();
+        cargarInvestigaciones();
+    </script>
+</body>
+</html>
