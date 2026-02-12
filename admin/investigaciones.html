@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -19,10 +19,12 @@
     </nav>
 
     <div class="container mx-auto px-4">
+        <!-- Botón Nueva Investigación -->
         <div class="mb-6">
             <button id="btn-nuevo" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">+ Nueva Investigación</button>
         </div>
 
+        <!-- Modal para crear/editar (oculto por defecto) -->
         <div id="modal-form" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
             <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-3xl shadow-lg rounded-md bg-white">
                 <h2 id="modal-titulo" class="text-2xl font-bold mb-4">Nueva Investigación</h2>
@@ -85,6 +87,7 @@
             </div>
         </div>
 
+        <!-- Tabla de investigaciones -->
         <div class="bg-white shadow-md rounded-lg overflow-hidden">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -98,6 +101,7 @@
                     </tr>
                 </thead>
                 <tbody id="tabla-body" class="bg-white divide-y divide-gray-200">
+                    <!-- Filas dinámicas -->
                 </tbody>
             </table>
         </div>
@@ -106,10 +110,12 @@
     <script type="module">
         import { supabase } from '../supabase.js';
 
+        // Verificar sesión
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (!session) window.location.href = 'login.html';
         });
 
+        // Elementos del DOM
         const btnNuevo = document.getElementById('btn-nuevo');
         const modalForm = document.getElementById('modal-form');
         const btnCancelar = document.getElementById('btn-cancelar');
@@ -128,6 +134,7 @@
         const pdfActual = document.getElementById('pdf-actual');
         const btnLogout = document.getElementById('btn-logout');
 
+        // Cargar investigaciones
         async function cargarInvestigaciones() {
             const { data, error } = await supabase
                 .from('investigaciones')
@@ -140,19 +147,19 @@
             }
 
             const tbody = document.getElementById('tabla-body');
-            tbody.innerHTML = data.map(inv => 
+            tbody.innerHTML = data.map(inv => `
                 <tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"></td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"></td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"></td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"></td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${inv.titulo}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${inv.pilar}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${inv.anio}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${inv.autores}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${inv.nivel_acceso}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button onclick="editarInvestigacion('')" class="text-blue-600 hover:text-blue-900 mr-3">Editar</button>
-                        <button onclick="eliminarInvestigacion('')" class="text-red-600 hover:text-red-900">Eliminar</button>
+                        <button onclick="editarInvestigacion('${inv.id}')" class="text-blue-600 hover:text-blue-900 mr-3">Editar</button>
+                        <button onclick="eliminarInvestigacion('${inv.id}')" class="text-red-600 hover:text-red-900">Eliminar</button>
                     </td>
                 </tr>
-            ).join('');
+            `).join('');
         }
 
         window.editarInvestigacion = async (id) => {
@@ -167,6 +174,7 @@
                 return;
             }
 
+            // Llenar formulario
             investigacionId.value = data.id;
             titulo.value = data.titulo;
             pilar.value = data.pilar;
@@ -176,8 +184,8 @@
             palabrasClave.value = data.palabras_clave.join(', ');
             requierePermiso.checked = data.requiere_permiso;
             nivelAcceso.value = data.nivel_acceso;
-            pdfActual.textContent = data.archivo_url ? PDF actual:  : 'Sin PDF';
-            pdfFile.value = '';
+            pdfActual.textContent = data.archivo_url ? `PDF actual: ${data.archivo_url.split('/').pop()}` : 'Sin PDF';
+            pdfFile.value = ''; // limpiar input file
             modalTitulo.textContent = 'Editar Investigación';
             modalForm.classList.remove('hidden');
         };
@@ -185,6 +193,7 @@
         window.eliminarInvestigacion = async (id) => {
             if (!confirm('¿Está seguro de eliminar esta investigación? Esta acción no se puede deshacer.')) return;
 
+            // Obtener URL del PDF para borrarlo del storage
             const { data: inv } = await supabase
                 .from('investigaciones')
                 .select('archivo_url')
@@ -209,6 +218,7 @@
             }
         };
 
+        // Abrir modal para nueva investigación
         btnNuevo.addEventListener('click', () => {
             form.reset();
             investigacionId.value = '';
@@ -217,10 +227,12 @@
             modalForm.classList.remove('hidden');
         });
 
+        // Cancelar
         btnCancelar.addEventListener('click', () => {
             modalForm.classList.add('hidden');
         });
 
+        // Guardar
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -230,7 +242,7 @@
             let archivo_url = null;
             if (pdfFile.files.length > 0) {
                 const file = pdfFile.files[0];
-                const filePath = ${Date.now()}_;
+                const filePath = `${Date.now()}_${file.name}`;
                 const { error: uploadError } = await supabase.storage
                     .from('investigaciones_pdf')
                     .upload(filePath, file);
@@ -260,12 +272,14 @@
 
             let error;
             if (id) {
+                // Actualizar
                 const { error: updateError } = await supabase
                     .from('investigaciones')
                     .update(data)
                     .eq('id', id);
                 error = updateError;
             } else {
+                // Crear
                 data.fecha_subida = new Date();
                 const { error: insertError } = await supabase
                     .from('investigaciones')
@@ -281,11 +295,13 @@
             }
         });
 
+        // Cerrar sesión
         btnLogout.addEventListener('click', async () => {
             await supabase.auth.signOut();
             window.location.href = 'login.html';
         });
 
+        // Inicializar
         cargarInvestigaciones();
     </script>
 </body>
