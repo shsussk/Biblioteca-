@@ -19,23 +19,25 @@
     </nav>
 
     <div class="container mx-auto px-4">
-        <div class="bg-white shadow-md rounded-lg overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documento</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Solicitante</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Correo</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motivo</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tabla-solicitudes" class="bg-white divide-y divide-gray-200">
-                    <!-- Filas dinámicas -->
-                </tbody>
-            </table>
+        <div class="bg-white shadow-md rounded-lg">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documento</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Solicitante</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Correo</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motivo</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-solicitudes" class="bg-white divide-y divide-gray-200">
+                        <!-- Filas dinámicas -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -75,11 +77,15 @@
 
                 return `
                     <tr>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${sol.investigaciones?.titulo || 'N/A'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            ${sol.investigaciones?.titulo || 'N/A'}
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sol.nombre}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sol.correo}</td>
                         <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">${sol.motivo}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(sol.fecha_solicitud).toLocaleDateString()}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${new Date(sol.fecha_solicitud).toLocaleDateString()}
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${estadoColor}">
                                 ${sol.estado}
@@ -87,8 +93,14 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             ${sol.estado === 'pendiente' ? `
-                                <button onclick="aprobarSolicitud('${sol.id}')" class="text-green-600 hover:text-green-900 mr-3">Aprobar</button>
-                                <button onclick="rechazarSolicitud('${sol.id}')" class="text-red-600 hover:text-red-900">Rechazar</button>
+                                <button onclick="aprobarSolicitud('${sol.id}')"
+                                        class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 mr-2">
+                                    Aprobar
+                                </button>
+                                <button onclick="rechazarSolicitud('${sol.id}')"
+                                        class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">
+                                    Rechazar
+                                </button>
                             ` : ''}
                         </td>
                     </tr>
@@ -137,3 +149,4 @@
     </script>
 </body>
 </html>
+
