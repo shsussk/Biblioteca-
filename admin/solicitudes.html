@@ -13,7 +13,9 @@
             <h1 class="text-xl font-bold text-gray-800">Gestionar Solicitudes</h1>
             <div class="space-x-2">
                 <a href="dashboard.html" class="text-blue-600 hover:underline">Dashboard</a>
-                <button id="btn-logout" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">Cerrar sesión</button>
+                <button id="btn-logout" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">
+                    Cerrar sesión
+                </button>
             </div>
         </div>
     </nav>
@@ -24,13 +26,27 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documento</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Solicitante</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Correo</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motivo</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Documento
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Solicitante
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Correo
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Motivo
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Fecha
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Estado
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Acciones
+                            </th>
                         </tr>
                     </thead>
                     <tbody id="tabla-solicitudes" class="bg-white divide-y divide-gray-200">
@@ -80,9 +96,15 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             ${sol.investigaciones?.titulo || 'N/A'}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sol.nombre}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sol.correo}</td>
-                        <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">${sol.motivo}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${sol.nombre}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${sol.correo}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                            ${sol.motivo}
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             ${new Date(sol.fecha_solicitud).toLocaleDateString()}
                         </td>
@@ -126,6 +148,7 @@
 
         window.rechazarSolicitud = async (id) => {
             if (!confirm('¿Rechazar esta solicitud?')) return;
+
             const { error } = await supabase
                 .from('solicitudes_descarga')
                 .update({ estado: 'rechazada' })
