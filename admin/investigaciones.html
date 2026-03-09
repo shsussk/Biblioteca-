@@ -27,7 +27,7 @@
         </div>
 
         <!-- Modal para crear/editar (oculto por defecto) -->
-        <div id="modal-form" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div id="modal-form" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
             <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-3xl shadow-lg rounded-md bg-white">
                 <h2 id="modal-titulo" class="text-2xl font-bold mb-4">Nueva Investigación</h2>
                 <form id="form-investigacion">
@@ -101,35 +101,37 @@
             </div>
         </div>
 
-        <!-- Tabla de investigaciones -->
-        <div class="bg-white shadow-md rounded-lg overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Título
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Pilar
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Año
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Autores
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Nivel
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Acciones
-                        </th>
-                    </tr>
-                </thead>
-                <tbody id="tabla-body" class="bg-white divide-y divide-gray-200">
-                    <!-- Filas dinámicas -->
-                </tbody>
-            </table>
+        <!-- Tabla de investigaciones con scroll horizontal -->
+        <div class="bg-white shadow-md rounded-lg">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Título
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Pilar
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Año
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Autores
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Nivel
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Acciones
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Filas dinámicas -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -165,7 +167,7 @@
             const { data, error } = await supabase
                 .from('investigaciones')
                 .select('*')
-                .order('fecha_subida', { ascending: false }); // [web:35]
+                .order('fecha_subida', { ascending: false });
 
             if (error) {
                 console.error(error);
@@ -175,18 +177,18 @@
             const tbody = document.getElementById('tabla-body');
             tbody.innerHTML = data.map(inv => `
                 <tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${inv.titulo}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900">${inv.titulo}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${inv.pilar}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${inv.anio}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${inv.autores}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${inv.autores}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${inv.nivel_acceso}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button onclick="editarInvestigacion('${inv.id}')"
-                                class="text-blue-600 hover:text-blue-900 mr-3">
+                                class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 mr-2">
                             Editar
                         </button>
                         <button onclick="eliminarInvestigacion('${inv.id}')"
-                                class="text-red-600 hover:text-red-900">
+                                class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">
                             Eliminar
                         </button>
                     </td>
@@ -194,13 +196,13 @@
             `).join('');
         }
 
-        // Hacer funciones globales para los botones inline
+        // Editar: cargar datos en el modal
         window.editarInvestigacion = async (id) => {
             const { data, error } = await supabase
                 .from('investigaciones')
                 .select('*')
                 .eq('id', id)
-                .single(); // [web:35][web:40]
+                .single();
 
             if (error) {
                 alert('Error al cargar la investigación');
@@ -232,6 +234,7 @@
             modalForm.classList.remove('hidden');
         };
 
+        // Eliminar: borrar PDF del storage y fila de la tabla
         window.eliminarInvestigacion = async (id) => {
             if (!confirm('¿Está seguro de eliminar esta investigación? Esta acción no se puede deshacer.')) return;
 
@@ -239,7 +242,7 @@
                 .from('investigaciones')
                 .select('archivo_url')
                 .eq('id', id)
-                .single(); // [web:35][web:40]
+                .single();
 
             if (invError) {
                 console.error('Error leyendo archivo_url:', invError);
@@ -248,7 +251,7 @@
             if (inv?.archivo_url) {
                 const { error: storageError } = await supabase.storage
                     .from('investigaciones_pdf')
-                    .remove([inv.archivo_url]); // [web:1]
+                    .remove([inv.archivo_url]);
 
                 if (storageError) {
                     console.error('Error borrando PDF del storage:', storageError);
@@ -258,7 +261,7 @@
             const { error } = await supabase
                 .from('investigaciones')
                 .delete()
-                .eq('id', id); // [web:1]
+                .eq('id', id);
 
             if (error) {
                 alert('Error al eliminar');
@@ -277,12 +280,12 @@
             modalForm.classList.remove('hidden');
         });
 
-        // Cancelar
+        // Cancelar modal
         btnCancelar.addEventListener('click', () => {
             modalForm.classList.add('hidden');
         });
 
-        // Guardar (crear / actualizar)
+        // Guardar (crear o actualizar)
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -300,7 +303,7 @@
 
                 const { error: uploadError } = await supabase.storage
                     .from('investigaciones_pdf')
-                    .upload(filePath, file); // [web:11][web:42]
+                    .upload(filePath, file);
 
                 if (uploadError) {
                     alert('Error al subir el archivo: ' + uploadError.message);
@@ -332,13 +335,13 @@
                 const { error: updateError } = await supabase
                     .from('investigaciones')
                     .update(payload)
-                    .eq('id', id); // [web:2][web:32]
+                    .eq('id', id);
                 error = updateError;
             } else {
                 payload.fecha_subida = new Date().toISOString();
                 const { error: insertError } = await supabase
                     .from('investigaciones')
-                    .insert([payload]); // [web:11][web:42]
+                    .insert([payload]);
                 error = insertError;
             }
 
@@ -353,7 +356,7 @@
 
         // Cerrar sesión
         btnLogout.addEventListener('click', async () => {
-            await supabase.auth.signOut(); // [web:24][web:42]
+            await supabase.auth.signOut();
             window.location.href = 'login.html';
         });
 
@@ -362,6 +365,8 @@
     </script>
 </body>
 </html>
+
+
 
 
 
