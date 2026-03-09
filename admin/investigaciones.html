@@ -139,7 +139,7 @@
             const { data, error } = await supabase
                 .from('investigaciones')
                 .select('*')
-                .order('fecha_subida', { ascending: false });
+                .order('fecha_subida', { ascending: false }); // [web:35]
 
             if (error) {
                 console.error(error);
@@ -162,30 +162,39 @@
             `).join('');
         }
 
+        // Hacer funciones globales para los botones inline
         window.editarInvestigacion = async (id) => {
             const { data, error } = await supabase
                 .from('investigaciones')
                 .select('*')
                 .eq('id', id)
-                .single();
+                .single(); // [web:35][web:40]
 
             if (error) {
                 alert('Error al cargar la investigación');
+                console.error(error);
                 return;
             }
 
             // Llenar formulario
             investigacionId.value = data.id;
-            titulo.value = data.titulo;
-            pilar.value = data.pilar;
-            anio.value = data.anio;
-            autores.value = data.autores;
-            resumen.value = data.resumen;
-            palabrasClave.value = data.palabras_clave.join(', ');
-            requierePermiso.checked = data.requiere_permiso;
-            nivelAcceso.value = data.nivel_acceso;
-            pdfActual.textContent = data.archivo_url ? `PDF actual: ${data.archivo_url.split('/').pop()}` : 'Sin PDF';
-            pdfFile.value = ''; // limpiar input file
+            titulo.value = data.titulo || '';
+            pilar.value = data.pilar || '';
+            anio.value = data.anio || '';
+            autores.value = data.autores || '';
+            resumen.value = data.resumen || '';
+            palabrasClave.value = Array.isArray(data.palabras_clave) ? data.palabras_clave.join(', ') : '';
+            requierePermiso.checked = !!data.requiere_permiso;
+            nivelAcceso.value = data.nivel_acceso || 'interno';
+
+            if (data.archivo_url) {
+                const nombre = data.archivo_url.split('/').pop();
+                pdfActual.textContent = `PDF actual: ${nombre}`;
+            } else {
+                pdfActual.textContent = 'Sin PDF';
+            }
+
+            pdfFile.value = '';
             modalTitulo.textContent = 'Editar Investigación';
             modalForm.classList.remove('hidden');
         };
@@ -193,26 +202,35 @@
         window.eliminarInvestigacion = async (id) => {
             if (!confirm('¿Está seguro de eliminar esta investigación? Esta acción no se puede deshacer.')) return;
 
-            // Obtener URL del PDF para borrarlo del storage
-            const { data: inv } = await supabase
+            // Obtener ruta interna del PDF para borrarlo del storage
+            const { data: inv, error: invError } = await supabase
                 .from('investigaciones')
                 .select('archivo_url')
                 .eq('id', id)
-                .single();
+                .single(); // [web:35][web:40]
+
+            if (invError) {
+                console.error('Error leyendo archivo_url:', invError);
+            }
 
             if (inv?.archivo_url) {
-                await supabase.storage
+                const { error: storageError } = await supabase.storage
                     .from('investigaciones_pdf')
-                    .remove([inv.archivo_url]);
+                    .remove([inv.archivo_url]); // ruta interna, no URL pública [web:1]
+
+                if (storageError) {
+                    console.error('Error borrando PDF del storage:', storageError);
+                }
             }
 
             const { error } = await supabase
                 .from('investigaciones')
                 .delete()
-                .eq('id', id);
+                .eq('id', id); // [web:1]
 
             if (error) {
                 alert('Error al eliminar');
+                console.error(error);
             } else {
                 cargarInvestigaciones();
             }
@@ -232,63 +250,69 @@
             modalForm.classList.add('hidden');
         });
 
-        // Guardar
+        // Guardar (crear o actualizar)
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const id = investigacionId.value;
-            const palabrasArray = palabrasClave.value.split(',').map(p => p.trim()).filter(p => p !== '');
+            const palabrasArray = palabrasClave.value
+                .split(',')
+                .map(p => p.trim())
+                .filter(p => p !== '');
 
             let archivo_url = null;
+
             if (pdfFile.files.length > 0) {
                 const file = pdfFile.files[0];
                 const filePath = `${Date.now()}_${file.name}`;
                 const { error: uploadError } = await supabase.storage
                     .from('investigaciones_pdf')
-                    .upload(filePath, file);
+                    .upload(filePath, file); // subir archivo [web:11][web:42]
 
                 if (uploadError) {
                     alert('Error al subir el archivo: ' + uploadError.message);
+                    console.error(uploadError);
                     return;
                 }
+
+                // Guardamos la ruta interna, no la URL completa
                 archivo_url = filePath;
             }
 
-            const data = {
+            const payload = {
                 titulo: titulo.value,
                 pilar: pilar.value,
-                anio: parseInt(anio.value),
+                anio: parseInt(anio.value, 10),
                 autores: autores.value,
                 resumen: resumen.value,
                 palabras_clave: palabrasArray,
                 requiere_permiso: requierePermiso.checked,
                 nivel_acceso: nivelAcceso.value,
-                ultima_actualizacion: new Date()
+                ultima_actualizacion: new Date().toISOString()
             };
 
             if (archivo_url) {
-                data.archivo_url = archivo_url;
+                payload.archivo_url = archivo_url;
             }
 
             let error;
             if (id) {
-                // Actualizar
                 const { error: updateError } = await supabase
                     .from('investigaciones')
-                    .update(data)
-                    .eq('id', id);
+                    .update(payload)
+                    .eq('id', id); // update por id [web:2][web:32]
                 error = updateError;
             } else {
-                // Crear
-                data.fecha_subida = new Date();
+                payload.fecha_subida = new Date().toISOString();
                 const { error: insertError } = await supabase
                     .from('investigaciones')
-                    .insert([data]);
+                    .insert([payload]); // insert [web:11][web:42]
                 error = insertError;
             }
 
             if (error) {
                 alert('Error al guardar: ' + error.message);
+                console.error(error);
             } else {
                 modalForm.classList.add('hidden');
                 cargarInvestigaciones();
@@ -297,7 +321,7 @@
 
         // Cerrar sesión
         btnLogout.addEventListener('click', async () => {
-            await supabase.auth.signOut();
+            await supabase.auth.signOut(); // [web:11][web:42]
             window.location.href = 'login.html';
         });
 
@@ -306,3 +330,4 @@
     </script>
 </body>
 </html>
+
