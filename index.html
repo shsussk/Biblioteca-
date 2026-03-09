@@ -58,12 +58,26 @@
     </div>
 
     <script type="module">
-        import { supabase } from './supabase.js';
+        import { supabase, getCurrentUserRole } from './supabase.js';
 
         const pilarSelect = document.getElementById('filtro-pilar');
         const anioSelect = document.getElementById('filtro-anio');
         const textoInput = document.getElementById('filtro-texto');
         const lista = document.getElementById('lista-investigaciones');
+
+        // Variable global simple para saber si es admin
+        let isAdmin = false;
+
+        // Obtener rol del usuario (ajusta esta función a tu implementación real)
+        async function initUserRole() {
+            try {
+                const role = await getCurrentUserRole(); // devuelve por ejemplo 'admin' o 'user'
+                isAdmin = role === 'admin';
+            } catch (e) {
+                console.error('No se pudo obtener el rol del usuario', e);
+                isAdmin = false;
+            }
+        }
 
         // Cargar años únicos para el filtro
         async function cargarAnios() {
@@ -110,6 +124,26 @@
             renderTarjetas(data || []);
         }
 
+        // Eliminar investigación
+        async function eliminarInvestigacion(id) {
+            const confirmar = window.confirm('¿Seguro que deseas eliminar esta investigación?');
+            if (!confirmar) return;
+
+            const { error } = await supabase
+                .from('investigaciones')
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                console.error('Error eliminando investigación:', error);
+                alert('Ocurrió un error al eliminar. Revisa la consola.');
+                return;
+            }
+
+            await cargarInvestigaciones();
+        }
+
+        // Render tarjetas (incluye botones de editar/eliminar si es admin)
         function renderTarjetas(investigaciones) {
             if (investigaciones.length === 0) {
                 lista.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500">No se encontraron investigaciones</div>';
@@ -132,7 +166,7 @@
                 }[inv.pilar];
 
                 return `
-                    <div class="card">
+                    <div class="card flex flex-col h-full">
                         <div class="flex justify-between items-start mb-2">
                             <span class="badge ${badgeColor}">${pilarTexto}</span>
                             <span class="text-sm text-gray-500">${inv.anio}</span>
@@ -143,10 +177,37 @@
                         <div class="flex flex-wrap gap-1 mb-4">
                             ${inv.palabras_clave.map(pc => `<span class="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">${pc}</span>`).join('')}
                         </div>
-                        <a href="detalle.html?id=${inv.id}" class="btn btn-primary w-full text-center">Ver detalle</a>
+                        <div class="mt-auto flex flex-col gap-2">
+                            <a href="detalle.html?id=${inv.id}" class="btn btn-primary w-full text-center">Ver detalle</a>
+                            ${isAdmin ? `
+                                <div class="flex gap-2">
+                                    <a 
+                                        href="admin/editar.html?id=${inv.id}" 
+                                        class="flex-1 inline-flex justify-center items-center px-3 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition">
+                                        Editar
+                                    </a>
+                                    <button 
+                                        data-id="${inv.id}"
+                                        class="btn-eliminar flex-1 inline-flex justify-center items-center px-3 py-2 text-sm font-medium rounded-md bg-red-600 text-white hover:bg-red-700 transition">
+                                        Eliminar
+                                    </button>
+                                </div>
+                            ` : ''}
+                        </div>
                     </div>
                 `;
             }).join('');
+
+            // Asignar eventos a los botones de eliminar (solo si es admin)
+            if (isAdmin) {
+                const botonesEliminar = document.querySelectorAll('.btn-eliminar');
+                botonesEliminar.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const id = btn.getAttribute('data-id');
+                        eliminarInvestigacion(id);
+                    });
+                });
+            }
         }
 
         // Debounce para búsqueda
@@ -168,8 +229,12 @@
         textoInput.addEventListener('input', debounce(cargarInvestigaciones, 300));
 
         // Inicializar
-        cargarAnios();
-        cargarInvestigaciones();
+        (async () => {
+            await initUserRole();
+            await cargarAnios();
+            await cargarInvestigaciones();
+        })();
     </script>
 </body>
 </html>
+
